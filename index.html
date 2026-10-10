@@ -20,6 +20,11 @@
   button { font:inherit; color:inherit; cursor:pointer; }
   button:focus-visible { outline:2px solid var(--camgobegi); outline-offset:2px; }
 
+  .sekmeler { display:flex; border-bottom:1px solid var(--cizgi); background:var(--panel); }
+  .sekmeler a { flex:1; padding:9px 8px; text-align:center; text-decoration:none; color:var(--soluk);
+                font-family:var(--baslik); font-weight:700; font-size:14px; border-bottom:2px solid transparent; }
+  .sekmeler a.secili { color:var(--altin); border-bottom-color:var(--altin); }
+
   .ust { display:flex; align-items:center; gap:16px; padding:10px 16px; border-bottom:1px solid var(--cizgi); }
   .ust h1 { font-family:var(--baslik); font-size:13px; letter-spacing:.28em; text-transform:uppercase;
             color:var(--soluk); margin:0 auto 0 0; }
@@ -105,6 +110,10 @@
 </style>
 </head>
 <body>
+<nav class="sekmeler">
+  <a href="index.html" class="secili">⭐ Yıldız Tozu</a>
+  <a href="vampir.html">🧛 Vampir Köylü</a>
+</nav>
 <header class="ust">
   <h1>Yıldız Tozu</h1>
   <span class="kaynak toz"><span id="toz">0</span><small>toz</small></span>

@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vampir Köylü</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700&display=swap">
+<style>
+  /* Düzen: üstte sekmeler, altında tek sütunluk oyun ekranı. Ekranın tamamı oda verisinden yeniden çizilir. */
+  :root { --zemin:#070b1a; --panel:#121834; --kart:rgba(255,255,255,.06); --cizgi:rgba(255,255,255,.14);
+          --yazi:#e9ecff; --soluk:#98a2c8; --altin:#ffd66b; --camgobegi:#6fe3ff; --tehlike:#ff8a7a;
+          --baslik:"Exo 2","Segoe UI",system-ui,sans-serif; --govde:"Segoe UI",system-ui,sans-serif;
+          color-scheme:dark; }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; min-height:100vh; background:var(--zemin); color:var(--yazi); font-family:var(--govde); font-size:16px;
+         touch-action:manipulation; -webkit-user-select:none; user-select:none; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  button:focus-visible { outline:2px solid var(--camgobegi); outline-offset:2px; }
+  button:disabled { opacity:.45; cursor:default; }
+
+  .sekmeler { display:flex; border-bottom:1px solid var(--cizgi); background:var(--panel); }
+  .sekmeler a { flex:1; padding:11px 8px; text-align:center; text-decoration:none; color:var(--soluk);
+                font-family:var(--baslik); font-weight:700; font-size:14px; border-bottom:2px solid transparent; }
+  .sekmeler a.secili { color:var(--altin); border-bottom-color:var(--altin); }
+
+  #ekran { max-width:520px; margin:0 auto; padding:16px 16px 40px; display:flex; flex-direction:column; gap:14px; }
+  .kutu { background:var(--panel); border:1px solid var(--cizgi); border-radius:18px; padding:18px;
+          display:flex; flex-direction:column; gap:12px; }
+  .kutu.orta { text-align:center; align-items:center; }
+  h2 { font-family:var(--baslik); font-size:24px; margin:0; text-wrap:balance; }
+  h3 { font-family:var(--baslik); font-size:13px; letter-spacing:.2em; text-transform:uppercase; color:var(--soluk); margin:0; }
+  p { margin:0; line-height:1.45; }
+  .soluk { color:var(--soluk); font-size:14px; }
+  .bekle { color:var(--soluk); text-align:center; padding:6px 0; }
+  input { width:100%; padding:13px; border-radius:12px; border:1px solid var(--cizgi); background:var(--kart);
+          color:var(--yazi); font:inherit; -webkit-user-select:text; user-select:text; }
+  label { display:flex; flex-direction:column; gap:6px; color:var(--soluk); font-size:14px; }
+  .yan { display:flex; gap:10px; }
+  .yan input { flex:1; min-width:0; }
+  .yan .ana { flex:none; }
+  .ayrac { text-align:center; color:var(--soluk); font-size:13px; }
+  details { color:var(--soluk); font-size:14px; line-height:1.5; }
+  summary { cursor:pointer; color:var(--camgobegi); }
+
+  .ana { padding:14px 18px; border-radius:14px; border:0; font-family:var(--baslik); font-weight:700;
+         font-size:17px; letter-spacing:.04em; background:var(--altin); color:#1b1503; }
+  .ana.ikinci { background:var(--kart); color:var(--yazi); border:1px solid var(--cizgi); }
+  .ince { background:none; border:0; padding:6px; color:var(--soluk); font-size:13px; text-decoration:underline; align-self:center; }
+
+  .kod { font-family:var(--baslik); font-weight:700; font-size:54px; letter-spacing:.18em; color:var(--altin);
+         font-variant-numeric:tabular-nums; line-height:1; -webkit-user-select:text; user-select:text; }
+
+  .liste { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .liste li, .satir { display:flex; align-items:center; gap:10px; width:100%; padding:12px 14px; border-radius:12px;
+                      background:var(--kart); border:1px solid transparent; text-align:left; }
+  .liste li.sec { padding:0; background:none; }
+  .satir.secili { border-color:var(--altin); background:rgba(255,214,107,.12); }
+  .liste .ad { flex:1; min-width:0; overflow-wrap:anywhere; }
+  .rozet { font-size:12px; color:var(--soluk); white-space:nowrap; }
+  .rozet.kirmizi { color:var(--tehlike); }
+  .olu .ad { text-decoration:line-through; color:var(--soluk); }
+  .at { background:none; border:0; color:var(--soluk); padding:0 4px; font-size:18px; }
+
+  .faz { display:flex; align-items:center; gap:10px; padding:14px 16px; border-radius:16px; border:1px solid var(--cizgi); }
+  .faz.gece { background:linear-gradient(135deg, #1a1440, #0b1030); }
+  .faz.gun { background:linear-gradient(135deg, #4a3a12, #2a2030); }
+  .fazAd { flex:1; font-family:var(--baslik); font-weight:700; font-size:20px; }
+  .faz .ince { text-decoration:none; border:1px solid var(--cizgi); border-radius:10px; padding:7px 10px; color:var(--yazi); }
+
+  .rolKart { text-align:center; align-items:center; }
+  .rolKart .ik { font-size:56px; line-height:1; }
+  .rolKart .rolAd { font-family:var(--baslik); font-weight:700; font-size:26px; color:var(--altin); }
+  .rolKart.vampir .rolAd { color:var(--tehlike); }
+  .haber { font-family:var(--baslik); font-weight:700; font-size:19px; text-wrap:balance; }
+  .haber.kotu { color:var(--tehlike); }
+  .haber.iyi { color:var(--camgobegi); }
+
+  #bildirim { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); max-width:calc(100% - 32px);
+              background:#2a3160; border:1px solid var(--cizgi); border-radius:12px; padding:11px 16px; font-size:14px; z-index:5; }
+</style>
+</head>
+<body>
+<nav class="sekmeler">
+  <a href="index.html">⭐ Yıldız Tozu</a>
+  <a href="vampir.html" class="secili">🧛 Vampir Köylü</a>
+</nav>
+<main id="ekran"></main>
+<div id="bildirim" hidden></div>
+
+<script>
+'use strict';
+// Vampir Köylü: herkes kendi telefonundan oynar. Oda verisi Firebase'de durur; her telefon aynı veriyi okuyup
+// kendi ekranını çizer. Rolleri dağıtmak, geceyi ve oylamayı sonuçlandırmak odayı kuranın telefonunun işidir.
+const ADRES = 'https://yildiz-tozu-27329-default-rtdb.europe-west1.firebasedatabase.app';
+const KOK = ADRES + '/vampir/';
+const EN_AZ = 4, EN_COK = 15;
+const SAKLA = 'vampirKoylu' + (new URLSearchParams(location.search).get('p') || '');   // ?p=2 → aynı tarayıcıda ayrı oyuncu (deneme için)
+
+const ROLLER = {
+  vampir: { ad:'Vampir', ik:'🧛', ne:'Her gece diğer vampirlerle birlikte bir kişiyi ısırırsın. Gündüz köylü gibi davran, yakalanma.' },
+  doktor: { ad:'Doktor', ik:'💉', ne:'Her gece bir kişiyi korursun (kendini de seçebilirsin). Vampirler onu ısırırsa ölmez.' },
+  gozcu:  { ad:'Gözcü',  ik:'🔮', ne:'Her gece bir kişinin vampir olup olmadığını öğrenirsin.' },
+  koylu:  { ad:'Köylü',  ik:'🧑‍🌾', ne:'Özel gücün yok. Gündüz konuşarak vampirleri bul ve astır.' }
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+
+let ben = { id:'', ad:'', kod:'' };
+try { ben = Object.assign(ben, JSON.parse(localStorage.getItem(SAKLA))); } catch (e) {}
+if (!ben.id) ben.id = 'p' + Math.random().toString(36).slice(2, 10);
+if (!ben.ad) { try { ben.ad = (JSON.parse(localStorage.getItem('yildizTozu2')).takmaAd || '').slice(0, 14); } catch (e) {} }
+function sakla() { try { localStorage.setItem(SAKLA, JSON.stringify(ben)); } catch (e) {} }
+
+let oda = null;        // odanın sunucudaki son hali
+let secim = '';        // listede dokunulmuş ama henüz onaylanmamış kişi
+let rolAcik = false;   // "Rolümü göster" açık mı
+let mesgul = false;    // kurucu şu an bir sonucu yazıyor mu
+let sonHam = '', sonFaz = '';
+
+// ---------- Sunucu ----------
+async function istek(yol, yontem, veri) {
+  const y = await fetch(KOK + yol + '.json', yontem
+    ? { method:yontem, headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(veri) } : undefined);
+  if (!y.ok) throw new Error(String(y.status));
+  return y.json();
+}
+
+let akis = null, akisVar = false, sayac = 0, zamanlayici = 0, cekiyor = false, yine = false;
+function dinle() {
+  birak();
+  try {   // Firebase değişiklikleri anında haber verir; olmazsa aşağıdaki zamanlayıcı sık sık sorar
+    akis = new EventSource(KOK + ben.kod + '.json');
+    akis.onopen = () => { akisVar = true; };
+    akis.onerror = () => { akisVar = false; };
+    akis.addEventListener('put', cek);
+    akis.addEventListener('patch', cek);
+  } catch (e) {}
+  zamanlayici = setInterval(() => { if (!akisVar || ++sayac % 4 === 0) cek(); }, 1500);
+  cek();
+}
+function birak() {
+  if (akis) akis.close();
+  akis = null; akisVar = false;
+  clearInterval(zamanlayici);
+}
+async function cek() {
+  if (!ben.kod) return;
+  if (cekiyor) { yine = true; return; }
+  cekiyor = true;
+  const kod = ben.kod;
+  try {
+    const y = await fetch(KOK + kod + '.json');
+    const ham = await y.text();
+    if (y.ok && kod === ben.kod && ham !== sonHam) { sonHam = ham; odaGeldi(JSON.parse(ham)); }
+  } catch (e) {}
+  cekiyor = false;
+  if (yine) { yine = false; cek(); }
+}
+function odaGeldi(v) {
+  if (!v || !v.oyuncular || !v.oyuncular[ben.id]) { ayril(v ? 'Odadan çıkarıldın.' : 'Oda kapandı.'); return; }
+  const faz = v.faz + v.tur;
+  if (faz !== sonFaz) {
+    secim = ''; rolAcik = false;
+    if (sonFaz && navigator.vibrate) navigator.vibrate(150);
+    sonFaz = faz;
+  }
+  oda = v;
+  ciz();
+  yonet();
+}
+function ayril(mesaj) {
+  birak();
+  ben.kod = ''; sakla();
+  oda = null; sonHam = ''; sonFaz = ''; secim = ''; rolAcik = false; mesgul = false;
+  ciz();
+  if (mesaj) bildir(mesaj);
+}
+
+let bildirimZ = 0;
+function bildir(m) {
+  $('bildirim').textContent = m;
+  $('bildirim').hidden = false;
+  clearTimeout(bildirimZ);
+  bildirimZ = setTimeout(() => { $('bildirim').hidden = true; }, 3500);
+}
+
+// ---------- Oda verisini okuma ----------
+function oyuncular() {   // giriş sırasına göre; oyun başladıysa sadece rol almış olanlar
+  const o = oda.oyuncular || {};
+  const l = Object.keys(o).map(id => Object.assign({ id }, o[id])).sort((a, b) => a.sira - b.sira || (a.id < b.id ? -1 : 1));
+  return oda.faz === 'lobi' ? l : l.filter(p => p.rol);
+}
+const canlilar = () => oyuncular().filter(p => p.canli);
+const kisi = id => oyuncular().find(p => p.id === id);
+const adi = id => { const p = kisi(id); return p ? esc(p.ad) : '?'; };
+const geceSecim = tur => (oda.gece || {})['t' + tur] || {};
+const oylar = tur => (oda.oy || {})['t' + tur] || {};
+const kurucu = () => oda.host === ben.id;
+
+function dagilim(n) {
+  const v = n <= 6 ? 1 : n <= 10 ? 2 : 3;
+  return { vampir:v, doktor:1, gozcu:1, koylu:n - v - 2 };
+}
+function kazanan(olen) {   // olen: az önce ölen kişi (veri henüz yazılmadı)
+  const c = canlilar().filter(p => p.id !== olen);
+  const v = c.filter(p => p.rol === 'vampir').length;
+  return v === 0 ? 'koy' : v * 2 >= c.length ? 'vampir' : '';
+}
+function enCok(secimler) {   // en çok seçilen; eşitlikte listede önce gelen seçim kazanır
+  const say = {};
+  let en = '';
+  secimler.forEach(s => { say[s] = (say[s] || 0) + 1; });
+  secimler.forEach(s => { if (!en || say[s] > say[en]) en = s; });
+  return en;
+}
+
+// ---------- Kurucunun işleri ----------
+function yonet() {
+  if (!oda || !kurucu() || mesgul) return;
+  const c = canlilar();
+  if (oda.faz === 'gece' && c.every(p => geceSecim(oda.tur)[p.id])) geceyiBitir();
+  else if (oda.faz === 'gunduz' && c.every(p => oylar(oda.tur)[p.id])) oylamayiBitir();
+}
+async function yaz(degisiklik) {
+  mesgul = true;
+  try { await istek(ben.kod, 'PATCH', degisiklik); }
+  catch (e) { bildir('Bağlantı sorunu, tekrar deneniyor…'); }
+  mesgul = false;
+  sonHam = '';
+  cek();
+}
+function baslat() {
+  const l = oyuncular();
+  const d = dagilim(l.length);
+  const roller = [];
+  Object.keys(d).forEach(r => { for (let i = 0; i < d[r]; i++) roller.push(r); });
+  for (let i = roller.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [roller[i], roller[j]] = [roller[j], roller[i]];
+  }
+  const y = { faz:'rol', tur:1, gece:null, oy:null, hazir:null, son:null, kazanan:null };
+  l.forEach((p, i) => { y['oyuncular/' + p.id + '/rol'] = roller[i]; y['oyuncular/' + p.id + '/canli'] = true; });
+  yaz(y);
+}
+function geceyiBitir() {
+  const g = geceSecim(oda.tur);
+  const c = canlilar();
+  const hedef = enCok(c.filter(p => p.rol === 'vampir' && g[p.id]).map(p => g[p.id]));
+  const doktor = c.find(p => p.rol === 'doktor');
+  const olen = hedef && !(doktor && g[doktor.id] === hedef) ? hedef : '';
+  const k = kazanan(olen);
+  const y = { faz:k ? 'bitti' : 'gunduz', 'son/gece':{ tur:oda.tur, olen } };
+  if (olen) y['oyuncular/' + olen + '/canli'] = false;
+  if (k) y.kazanan = k;
+  yaz(y);
+}
+function oylamayiBitir() {
+  const o = oylar(oda.tur);
+  const say = {};
+  canlilar().forEach(p => { if (o[p.id]) say[o[p.id]] = (say[o[p.id]] || 0) + 1; });
+  const sirali = Object.keys(say).sort((a, b) => say[b] - say[a]);
+  // en çok oyu tek başına alan asılır; eşitlik ya da "pas" çoğunluğu varsa kimse asılmaz
+  const asilan = sirali.length && sirali[0] !== 'pas' && (sirali.length < 2 || say[sirali[0]] > say[sirali[1]]) ? sirali[0] : '';
+  const k = kazanan(asilan);
+  const y = { faz:k ? 'bitti' : 'aksam', 'son/gun':{ tur:oda.tur, asilan, oylar:o } };
+  if (asilan) y['oyuncular/' + asilan + '/canli'] = false;
+  if (k) y.kazanan = k;
+  yaz(y);
+}
+function tekrar() {
+  const y = { faz:'lobi', tur:0, gece:null, oy:null, hazir:null, son:null, kazanan:null };
+  oyuncular().forEach(p => { y['oyuncular/' + p.id + '/rol'] = null; y['oyuncular/' + p.id + '/canli'] = null; });
+  yaz(y);
+}
+
+// ---------- Odaya girme ----------
+function adOku() {
+  const ad = $('ad').value.trim().slice(0, 14);
+  if (!ad) { bildir('Önce adını yaz.'); return ''; }
+  ben.ad = ad; sakla();
+  return ad;
+}
+async function odaKur() {
+  const ad = adOku();
+  if (!ad) return;
+  try {
+    let kod = '';
+    for (let i = 0; i < 20 && !kod; i++) {
+      const aday = String(1000 + Math.floor(Math.random() * 9000));
+      const eski = await istek(aday);
+      if (!eski || !(Date.now() - eski.t < 864e5)) kod = aday;   // boş ya da bir günden eski oda kodunu kullan
+    }
+    if (!kod) throw new Error('kod');
+    await istek(kod, 'PUT', { host:ben.id, t:Date.now(), faz:'lobi', tur:0, oyuncular:{ [ben.id]:{ ad, sira:Date.now() } } });
+    ben.kod = kod; sakla();
+    dinle();
+  } catch (e) {
+    bildir(e.message === '401' ? 'Sunucu izin vermedi (Firebase kuralı eksik).' : 'Oda kurulamadı, internetini kontrol et.');
+  }
+}
+async function odayaKatil() {
+  const ad = adOku();
+  if (!ad) return;
+  const kod = $('kodGir').value.trim();
+  if (!/^\d{4}$/.test(kod)) { bildir('Oda kodu 4 rakamdır.'); return; }
+  try {
+    const o = await istek(kod);
+    const var_ = o && o.oyuncular && o.oyuncular[ben.id];
+    if (!o || !o.oyuncular) { bildir('Böyle bir oda yok.'); return; }
+    if (!var_ && o.faz !== 'lobi') { bildir('Oyun başlamış. El bitince tekrar dene.'); return; }
+    if (!var_ && Object.keys(o.oyuncular).length >= EN_COK) { bildir('Oda dolu.'); return; }
+    if (!var_) await istek(kod + '/oyuncular/' + ben.id, 'PUT', { ad, sira:Date.now() });
+    ben.kod = kod; sakla();
+    dinle();
+  } catch (e) { bildir('Odaya girilemedi, internetini kontrol et.'); }
+}
+async function odadanCik() {
+  const kod = ben.kod, lobide = oda && oda.faz === 'lobi', sahibi = oda && kurucu();
+  ayril();
+  try {
+    if (lobide && sahibi) await istek(kod, 'DELETE');
+    else if (lobide) await istek(kod + '/oyuncular/' + ben.id, 'DELETE');
+  } catch (e) {}
+}
+
+// ---------- Ekran ----------
+function ciz() {
+  $('ekran').innerHTML = !oda ? girisCiz() : oda.faz === 'lobi' ? lobiCiz() : oyunCiz();
+}
+
+function girisCiz() {
+  const kod = new URLSearchParams(location.search).get('oda') || '';
+  return `<section class="kutu">
+    <h2>🧛 Vampir Köylü</h2>
+    <p class="soluk">Herkes kendi telefonundan girer. Roller gizli dağıtılır, anlatıcıya gerek yok.</p>
+    <label>Adın<input id="ad" maxlength="14" autocomplete="off" value="${esc(ben.ad)}"></label>
+    <button class="ana" data-is="kur">Oda kur</button>
+    <div class="ayrac">ya da bir odaya gir</div>
+    <div class="yan"><input id="kodGir" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="Oda kodu" value="${esc(kod)}">
+      <button class="ana ikinci" data-is="katil">Katıl</button></div>
+    <details><summary>Nasıl oynanır?</summary>
+      <p>En az ${EN_AZ} kişi gerekir. Biri oda kurar, kodu söyler, diğerleri girer.</p>
+      <p><b>Gece:</b> herkes telefonundan bir kişi seçer. Vampirler ısıracağı kişiyi, doktor koruyacağı kişiyi,
+         gözcü sorgulayacağı kişiyi seçer. Köylüler de bir seçim yapar ki kimin ne olduğu anlaşılmasın.</p>
+      <p><b>Gündüz:</b> gece kimin öldüğü açıklanır. Konuşup tartışırsınız, sonra herkes asılacak kişiye oy verir.</p>
+      <p><b>Kazanan:</b> bütün vampirler asılırsa köylüler; vampirler köylülerle eşit sayıya ulaşırsa vampirler kazanır.</p>
+    </details>
+  </section>`;
+}
+
+function lobiCiz() {
+  const l = oyuncular(), d = dagilim(l.length), yeter = l.length >= EN_AZ;
+  return `<section class="kutu orta">
+      <h3>Oda kodu</h3>
+      <div class="kod">${esc(ben.kod)}</div>
+      <p class="soluk">Arkadaşların bu kodu "Katıl" kutusuna yazsın.</p>
+      <button class="ana ikinci" data-is="paylas">Davet bağlantısını paylaş</button>
+    </section>
+    <section class="kutu">
+      <h3>Oyuncular (${l.length})</h3>
+      <ul class="liste">${l.map(p => `<li><span class="ad">${esc(p.ad)}</span>
+        ${p.id === oda.host ? '<span class="rozet">kurucu</span>' : ''}${p.id === ben.id ? '<span class="rozet">sen</span>' : ''}
+        ${kurucu() && p.id !== ben.id ? `<button class="at" data-is="at" data-kim="${p.id}" aria-label="Odadan çıkar">✕</button>` : ''}</li>`).join('')}</ul>
+      ${yeter ? `<p class="soluk">Bu sayıyla: ${d.vampir} vampir, 1 doktor, 1 gözcü, ${d.koylu} köylü.</p>`
+              : `<p class="soluk">Başlamak için en az ${EN_AZ} kişi gerekir.</p>`}
+    </section>
+    ${kurucu() ? `<button class="ana" data-is="baslat" ${yeter ? '' : 'disabled'}>Oyunu başlat</button>`
+               : '<p class="bekle">Kurucunun oyunu başlatması bekleniyor…</p>'}
+    <button class="ince" data-is="cik">Odadan çık</button>`;
+}
+
+function rolKart(buyuk) {
+  const b = kisi(ben.id), r = ROLLER[b.rol];
+  let ek = '';
+  if (b.rol === 'vampir') {
+    const d = oyuncular().filter(p => p.rol === 'vampir' && p.id !== ben.id);
+    if (d.length) ek = `<p>Diğer vampirler: <b>${d.map(p => esc(p.ad)).join(', ')}</b></p>`;
+  }
+  if (b.rol === 'gozcu') ek = gozcuNotlari();
+  return `<section class="kutu rolKart ${b.rol}">
+    ${buyuk ? `<div class="ik">${r.ik}</div>` : ''}
+    <div class="rolAd">${buyuk ? '' : r.ik + ' '}${r.ad}</div>
+    <p class="soluk">${r.ne}</p>${ek}</section>`;
+}
+function gozcuNotlari() {
+  const s = [];
+  for (let t = 1; t <= oda.tur; t++) {
+    const h = geceSecim(t)[ben.id], p = h && kisi(h);
+    if (p) s.push(`<p>${t}. gece: <b>${esc(p.ad)}</b> ${p.rol === 'vampir' ? '<span class="rozet kirmizi">VAMPİR 🧛</span>' : 'vampir değil ✔'}</p>`);
+  }
+  return s.join('');
+}
+
+function secimListe(adaylar, rozet, pas) {
+  return `<ul class="liste">${adaylar.map(p => `<li class="sec"><button class="satir ${secim === p.id ? 'secili' : ''}" data-hedef="${p.id}">
+      <span class="ad">${esc(p.ad)}${p.id === ben.id ? ' (sen)' : ''}</span>${rozet ? rozet(p) : ''}</button></li>`).join('')}
+    ${pas ? `<li class="sec"><button class="satir ${secim === 'pas' ? 'secili' : ''}" data-hedef="pas"><span class="ad">Kimseyi asma (pas)</span></button></li>` : ''}</ul>
+    <button class="ana" data-is="onayla" ${secim ? '' : 'disabled'}>Onayla</button>`;
+}
+function olenler() {
+  const o = oyuncular().filter(p => !p.canli);
+  return o.length ? `<p class="soluk">⚰️ Ölenler: ${o.map(p => `${esc(p.ad)} (${ROLLER[p.rol].ad})`).join(', ')}</p>` : '';
+}
+function geceHaberi() {
+  const g = (oda.son || {}).gece;
+  if (!g || g.tur !== oda.tur) return '';
+  return g.olen ? `<section class="kutu orta"><p class="haber kotu">Bu gece ${adi(g.olen)} ısırıldı ve öldü.</p>
+                   <p class="soluk">Rolü: ${ROLLER[kisi(g.olen).rol].ad}</p></section>`
+                : '<section class="kutu orta"><p class="haber iyi">Bu gece kimse ölmedi.</p></section>';
+}
+function gunHaberi() {
+  const g = (oda.son || {}).gun;
+  if (!g || g.tur !== oda.tur) return '';
+  const o = g.oylar || {};
+  return `<section class="kutu orta">${g.asilan
+      ? `<p class="haber kotu">Köy ${adi(g.asilan)} adlı kişiyi astı.</p><p class="soluk">Rolü: ${ROLLER[kisi(g.asilan).rol].ad}</p>`
+      : '<p class="haber">Kimse asılmadı.</p><p class="soluk">Oylar eşit çıktı ya da çoğunluk pas dedi.</p>'}</section>
+    <section class="kutu"><h3>Oylar</h3><ul class="liste">${Object.keys(o).filter(kisi).map(id =>
+      `<li><span class="ad">${adi(id)}</span><span class="rozet">→ ${o[id] === 'pas' ? 'pas' : adi(o[id])}</span></li>`).join('')}</ul></section>`;
+}
+
+function oyunCiz() {
+  const b = kisi(ben.id), faz = oda.faz, tur = oda.tur;
+  if (!b) return `<section class="kutu orta"><p class="haber">Bu el sen girmeden başlamış.</p>
+    <p class="soluk">El bitince otomatik olarak oyuna katılacaksın.</p></section><button class="ince" data-is="cik">Odadan çık</button>`;
+  const c = canlilar();
+  const baslik = { rol:'🎴 Roller dağıtıldı', gece:`🌙 ${tur}. Gece`, gunduz:`☀️ ${tur}. Gün`, aksam:`🌇 ${tur}. Gün sonu`, bitti:'🏁 Oyun bitti' }[faz];
+  let h = `<header class="faz ${faz === 'gece' ? 'gece' : 'gun'}"><div class="fazAd">${baslik}</div>
+    ${faz === 'rol' || faz === 'bitti' ? '' : `<button class="ince" data-is="rol">${rolAcik ? 'Rolümü gizle' : 'Rolümü göster'}</button>`}</header>`;
+  if (rolAcik && faz !== 'rol' && faz !== 'bitti') h += rolKart(false);
+
+  if (faz === 'rol') {
+    const hazir = oda.hazir || {}, n = oyuncular().filter(p => hazir[p.id]).length;
+    h += rolAcik ? rolKart(true)
+                 : `<section class="kutu orta"><p class="haber">Rolün hazır.</p><p class="soluk">Kimse ekranına bakmıyorken aç.</p>
+                    <button class="ana" data-is="rol">Rolümü göster</button></section>`;
+    if (rolAcik) h += `<button class="ana ikinci" data-is="rol">Rolümü gizle</button>`;
+    h += hazir[ben.id] ? '' : `<button class="ana" data-is="hazir">Rolümü gördüm, hazırım</button>`;
+    h += `<p class="bekle">${n}/${oyuncular().length} kişi hazır</p>`;
+    h += kurucu() ? `<button class="ana ikinci" data-is="gece">Geceyi başlat</button>` : '';
+  }
+
+  if (faz === 'gece') {
+    const g = geceSecim(tur), benim = g[ben.id];
+    const n = c.filter(p => g[p.id]).length;
+    if (!b.canli) h += `<section class="kutu orta"><p class="haber">☠️ Öldün.</p><p class="soluk">Oyun bitene kadar sessiz kal, ipucu verme.</p></section>`;
+    else if (benim) {
+      h += `<section class="kutu orta"><p class="haber">Seçimin: ${adi(benim)} ✔</p>
+        ${b.rol === 'gozcu' ? `<p>${kisi(benim).rol === 'vampir' ? '<b class="rozet kirmizi" style="font-size:18px">VAMPİR 🧛</b>' : '<b>Vampir değil ✔</b>'}</p>` : ''}
+        <p class="soluk">Diğerleri bekleniyor…</p></section>`;
+    } else {
+      const soru = { vampir:'Kimi ısıracaksınız?', doktor:'Bu gece kimi koruyacaksın?', gozcu:'Kimi sorgulayacaksın?', koylu:'Kimden şüpheleniyorsun?' }[b.rol];
+      const adaylar = b.rol === 'vampir' ? c.filter(p => p.rol !== 'vampir') : b.rol === 'doktor' ? c : c.filter(p => p.id !== ben.id);
+      const rozet = b.rol !== 'vampir' ? null : p => {
+        const s = c.filter(v => v.rol === 'vampir' && v.id !== ben.id && g[v.id] === p.id).map(v => esc(v.ad));
+        return s.length ? `<span class="rozet kirmizi">🧛 ${s.join(', ')} seçti</span>` : '';
+      };
+      h += `<section class="kutu"><p class="haber">${soru}</p>
+        ${b.rol === 'koylu' ? '<p class="soluk">Bu seçim oyunu etkilemez; kimin köylü olduğu anlaşılmasın diye herkes bir seçim yapar.</p>' : ''}
+        ${b.rol === 'vampir' && c.filter(p => p.rol === 'vampir').length > 1 ? '<p class="soluk">En çok seçilen kişi ısırılır.</p>' : ''}
+        ${secimListe(adaylar, rozet, false)}</section>`;
+    }
+    h += `<p class="bekle">${n}/${c.length} kişi seçimini yaptı</p>`;
+  }
+
+  if (faz === 'gunduz') {
+    const o = oylar(tur), benim = o[ben.id];
+    const n = c.filter(p => o[p.id]).length;
+    h += geceHaberi();
+    if (!b.canli) h += `<section class="kutu orta"><p class="haber">☠️ Öldün.</p><p class="soluk">Oyun bitene kadar sessiz kal, ipucu verme.</p></section>`;
+    else if (benim) h += `<section class="kutu orta"><p class="haber">Oyun: ${benim === 'pas' ? 'pas' : adi(benim)} ✔</p><p class="soluk">Diğerleri bekleniyor…</p></section>`;
+    else h += `<section class="kutu"><p class="haber">Kim asılsın?</p><p class="soluk">Önce konuşup tartışın, sonra oy verin. Oy verince değiştiremezsin.</p>
+        ${secimListe(c.filter(p => p.id !== ben.id), null, true)}</section>`;
+    h += `<p class="bekle">${n}/${c.length} kişi oy verdi</p>`;
+  }
+
+  if (faz === 'aksam') {
+    h += gunHaberi();
+    h += kurucu() ? `<button class="ana" data-is="gece">Gece olsun</button>` : '<p class="bekle">Kurucunun geceyi başlatması bekleniyor…</p>';
+  }
+
+  if (faz === 'bitti') {
+    h += `<section class="kutu orta"><p class="haber ${oda.kazanan === 'vampir' ? 'kotu' : 'iyi'}" style="font-size:26px">
+      ${oda.kazanan === 'vampir' ? '🧛 Vampirler kazandı!' : '🎉 Köylüler kazandı!'}</p></section>`;
+    h += geceHaberi() + gunHaberi();
+    h += `<section class="kutu"><h3>Kim neydi?</h3><ul class="liste">${oyuncular().map(p =>
+      `<li class="${p.canli ? '' : 'olu'}"><span class="ad">${esc(p.ad)}</span>
+       <span class="rozet ${p.rol === 'vampir' ? 'kirmizi' : ''}">${ROLLER[p.rol].ik} ${ROLLER[p.rol].ad}</span></li>`).join('')}</ul></section>`;
+    h += kurucu() ? `<button class="ana" data-is="tekrar">Tekrar oyna</button>` : '<p class="bekle">Kurucu yeni eli başlatabilir…</p>';
+    h += `<button class="ince" data-is="cik">Odadan çık</button>`;
+  } else {
+    h += olenler();
+    if (kurucu() && (faz === 'gece' || faz === 'gunduz')) h += `<button class="ince" data-is="zorla">Beklemeden ilerlet (kurucu)</button>`;
+  }
+  return h;
+}
+
+// ---------- Dokunuşlar ----------
+async function onayla() {
+  if (!secim || !oda) return;
+  const gece = oda.faz === 'gece', hedef = secim;
+  const dal = (gece ? 'gece' : 'oy') + '/t' + oda.tur;
+  secim = '';
+  try {
+    await istek(ben.kod + '/' + dal + '/' + ben.id, 'PUT', hedef);
+    cek();
+  } catch (e) { secim = hedef; bildir('Gönderilemedi, tekrar dene.'); ciz(); }
+}
+
+$('ekran').addEventListener('click', async e => {
+  const d = e.target.closest('button');
+  if (!d || d.disabled) return;
+  if (d.dataset.hedef) { secim = d.dataset.hedef; ciz(); return; }
+  switch (d.dataset.is) {
+    case 'kur': d.disabled = true; await odaKur(); d.disabled = false; break;
+    case 'katil': d.disabled = true; await odayaKatil(); d.disabled = false; break;
+    case 'cik': if (!oda || oda.faz === 'lobi' || oda.faz === 'bitti' || confirm('Oyun sürüyor. Yine de çıkılsın mı?')) odadanCik(); break;
+    case 'at': istek(ben.kod + '/oyuncular/' + d.dataset.kim, 'DELETE').then(cek, () => {}); break;
+    case 'paylas': {
+      const adres = location.origin + location.pathname + '?oda=' + ben.kod;
+      const metin = 'Vampir Köylü oynuyoruz, oda kodu ' + ben.kod;
+      if (navigator.share) navigator.share({ text:metin, url:adres }).catch(() => {});
+      else if (navigator.clipboard) navigator.clipboard.writeText(metin + ' ' + adres).then(() => bildir('Bağlantı kopyalandı.'), () => {});
+      break;
+    }
+    case 'baslat': if (!mesgul) baslat(); break;
+    case 'rol': rolAcik = !rolAcik; ciz(); break;
+    case 'hazir': d.disabled = true; istek(ben.kod + '/hazir/' + ben.id, 'PUT', true).then(cek, () => bildir('Gönderilemedi, tekrar dene.')); break;
+    case 'gece': if (!mesgul) yaz(oda.faz === 'rol' ? { faz:'gece' } : { faz:'gece', tur:oda.tur + 1 }); break;
+    case 'onayla': d.disabled = true; onayla(); break;
+    case 'zorla':
+      if (!mesgul && confirm('Seçim yapmayanlar beklenmeden ilerlensin mi?')) { if (oda.faz === 'gece') geceyiBitir(); else oylamayiBitir(); }
+      break;
+    case 'tekrar': if (!mesgul) tekrar(); break;
+  }
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  cek();
+  if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {});   // oyun sırasında ekran kararmasın
+});
+if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {});
+
+ciz();
+if (ben.kod) dinle();   // sayfa yenilendiyse ya da telefon kapandıysa kaldığı odaya döner
+</script>
+</body>
+</html>
