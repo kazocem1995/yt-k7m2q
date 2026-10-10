@@ -509,6 +509,7 @@ function oyunCiz() {
   } else {
     h += olenler();
     if (kurucu() && (faz === 'gece' || faz === 'gunduz')) h += `<button class="ince" data-is="zorla">Beklemeden ilerlet (kurucu)</button>`;
+    if (kurucu()) h += `<button class="ince" data-is="sifirla">Oyunu sıfırla (kurucu)</button>`;
   }
   return h;
 }
@@ -550,6 +551,7 @@ $('ekran').addEventListener('click', async e => {
       if (!mesgul && confirm('Seçim yapmayanlar beklenmeden ilerlensin mi?')) { if (oda.faz === 'gece') geceyiBitir(); else oylamayiBitir(); }
       break;
     case 'tekrar': if (!mesgul) tekrar(); break;
+    case 'sifirla': if (!mesgul && confirm('Bu el iptal edilip herkes lobiye dönsün mü?')) tekrar(); break;
   }
 });
 
