@@ -234,7 +234,7 @@ function enCok(secimler) {   // en çok seçilen; eşitlikte listede önce gelen
 function yonet() {
   if (!oda || !kurucu() || mesgul) return;
   const c = canlilar();
-  if (oda.faz === 'gece' && c.every(p => geceSecim(oda.tur)[p.id])) geceyiBitir();
+  if (oda.faz === 'gece' && c.every(p => p.rol === 'koylu' || geceSecim(oda.tur)[p.id])) geceyiBitir();   // köylüler gece seçim yapmaz
   else if (oda.faz === 'gunduz' && c.every(p => oylar(oda.tur)[p.id])) oylamayiBitir();
 }
 async function yaz(degisiklik) {
@@ -359,7 +359,7 @@ function girisCiz() {
     <details><summary>Nasıl oynanır?</summary>
       <p>En az ${EN_AZ} kişi gerekir. Biri oda kurar, kodu söyler, diğerleri girer.</p>
       <p><b>Gece:</b> herkes telefonundan bir kişi seçer. Vampirler ısıracağı kişiyi (anlaşamazlarsa Drakula'nın seçtiği ısırılır), doktor koruyacağı kişiyi,
-         gözcü sorgulayacağı kişiyi seçer. Köylüler de bir seçim yapar ki kimin ne olduğu anlaşılmasın.</p>
+         gözcü sorgulayacağı kişiyi seçer. Köylüler uyur.</p>
       <p><b>Gündüz:</b> gece kimin öldüğü açıklanır (rolü oyun bitene kadar gizli kalır). Konuşup tartışırsınız, sonra herkes asılacak kişiye oy verir.</p>
       <p><b>Kazanan:</b> bütün vampirler asılırsa köylüler; vampirler köylülerle eşit sayıya ulaşırsa vampirler kazanır.</p>
     </details>
@@ -438,8 +438,12 @@ function gunHaberi() {
   return `<section class="kutu orta">${g.asilan
       ? `<p class="haber kotu">Köy ${adi(g.asilan)} adlı kişiyi astı.</p>`
       : '<p class="haber">Kimse asılmadı.</p><p class="soluk">Oylar eşit çıktı ya da çoğunluk pas dedi.</p>'}</section>
-    <section class="kutu"><h3>Oylar</h3><ul class="liste">${Object.keys(o).filter(kisi).map(id =>
-      `<li><span class="ad">${adi(id)}</span><span class="rozet">→ ${o[id] === 'pas' ? 'pas' : adi(o[id])}</span></li>`).join('')}</ul></section>`;
+    ${oyListe(o)}`;
+}
+function oyListe(o) {   // kim kime oy verdi
+  const l = oyuncular().filter(p => o[p.id]);
+  return l.length ? `<section class="kutu"><h3>Oylar</h3><ul class="liste">${l.map(p =>
+    `<li><span class="ad">${esc(p.ad)}</span><span class="rozet">→ ${o[p.id] === 'pas' ? 'pas' : adi(o[p.id])}</span></li>`).join('')}</ul></section>` : '';
 }
 
 function oyunCiz() {
@@ -471,38 +475,38 @@ function oyunCiz() {
 
   if (faz === 'gece') {
     const g = geceSecim(tur), benim = g[ben.id];
-    const n = c.filter(p => g[p.id]).length;
     if (!b.canli) h += `<section class="kutu orta"><p class="haber">☠️ Öldün.</p><p class="soluk">Oyun bitene kadar sessiz kal, ipucu verme.</p></section>`;
+    else if (b.rol === 'koylu') h += `<section class="kutu orta"><p class="haber">😴 Uyuyorsun.</p><p class="soluk">Gece yapacak bir işin yok. Sabah olunca telefon titrer.</p></section>`;
     else if (benim) {
       h += `<section class="kutu orta"><p class="haber">Seçimin: ${adi(benim)} ✔</p>
         ${b.rol === 'gozcu' ? `<p>${kotu(kisi(benim)) ? '<b class="rozet kirmizi" style="font-size:18px">VAMPİR 🧛</b>' : '<b>Vampir değil ✔</b>'}</p>` : ''}
         ${kotu(b) ? vampirDostlar() : ''}
         <p class="soluk">Diğerleri bekleniyor…</p></section>`;
     } else {
-      const soru = { drakula:'Kimi ısıracaksınız?', vampir:'Kimi ısıracaksınız?', doktor:'Bu gece kimi koruyacaksın?', gozcu:'Kimi sorgulayacaksın?', koylu:'Kimden şüpheleniyorsun?' }[b.rol];
+      const soru = { drakula:'Kimi ısıracaksınız?', vampir:'Kimi ısıracaksınız?', doktor:'Bu gece kimi koruyacaksın?', gozcu:'Kimi sorgulayacaksın?' }[b.rol];
       const adaylar = kotu(b) ? c.filter(p => !kotu(p)) : b.rol === 'doktor' ? c : c.filter(p => p.id !== ben.id);
       const rozet = !kotu(b) ? null : p => {
         const s = c.filter(v => kotu(v) && v.id !== ben.id && g[v.id] === p.id).map(v => esc(v.ad) + (v.rol === 'drakula' ? ' (Drakula)' : ''));
         return s.length ? `<span class="rozet kirmizi">🧛 ${s.join(', ')} seçti</span>` : '';
       };
       h += `<section class="kutu"><p class="haber">${soru}</p>
-        ${b.rol === 'koylu' ? '<p class="soluk">Bu seçim oyunu etkilemez; kimin köylü olduğu anlaşılmasın diye herkes bir seçim yapar.</p>' : ''}
         ${kotu(b) ? vampirDostlar() : ''}
         ${kotu(b) && c.filter(p => kotu(p)).length > 1 ? `<p class="soluk">${c.some(p => p.rol === 'drakula') ? 'Farklı kişileri seçerseniz Drakula’nın seçtiği ısırılır.' : 'En çok seçilen kişi ısırılır.'}</p>` : ''}
         ${secimListe(adaylar, rozet, false)}</section>`;
     }
-    h += `<p class="bekle">${n}/${c.length} kişi seçimini yaptı</p>`;
+    h += `<p class="bekle">Gece sürüyor…</p>`;
   }
 
   if (faz === 'gunduz') {
     const o = oylar(tur), benim = o[ben.id];
     const n = c.filter(p => o[p.id]).length;
     h += geceHaberi();
+    if (b.rol === 'gozcu') h += `<section class="kutu"><h3>🔮 Sadece sen görüyorsun</h3>${gozcuNotlari() || '<p class="soluk">Henüz kimseyi sorgulamadın.</p>'}</section>`;
     if (!b.canli) h += `<section class="kutu orta"><p class="haber">☠️ Öldün.</p><p class="soluk">Oyun bitene kadar sessiz kal, ipucu verme.</p></section>`;
     else if (benim) h += `<section class="kutu orta"><p class="haber">Oyun: ${benim === 'pas' ? 'pas' : adi(benim)} ✔</p><p class="soluk">Diğerleri bekleniyor…</p></section>`;
-    else h += `<section class="kutu"><p class="haber">Kim asılsın?</p><p class="soluk">Önce konuşup tartışın, sonra oy verin. Oy verince değiştiremezsin.</p>
+    else h += `<section class="kutu"><p class="haber">Kim asılsın?</p><p class="soluk">Önce konuşup tartışın, sonra oy verin. Oyun herkese görünür; verince değiştiremezsin.</p>
         ${secimListe(c.filter(p => p.id !== ben.id), null, true)}</section>`;
-    h += `<p class="bekle">${n}/${c.length} kişi oy verdi</p>`;
+    h += `<p class="bekle">${n}/${c.length} kişi oy verdi</p>` + oyListe(o);
   }
 
   if (faz === 'aksam') {
